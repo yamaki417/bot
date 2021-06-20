@@ -19,4 +19,17 @@ https://blog.y-yuki.net/entry/2016/09/11/064316
 4. ngrokインストール
   4.1 Windowsは知らんw
 
+## 動作確認
+　メッセージAPIは別途連携する。
+ 
+1.bootダッシュボードから起動
 
+2.以下コマンドから実行
+　　　ngrok http 8080
+   
+3.Webhook設定
+　　　Line DevelopersのApi設定のWebhook設定に２で実行したURIを設定する。
+   例：https://8e96049f63da.ngrok.io + /callback ⇦２で取得したURI＋/callbackで設定
+
+4.botにメッセージを送って動作確認できる。
+ 
