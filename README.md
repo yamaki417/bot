@@ -1,5 +1,5 @@
 # Line bot開発
-## 手順
+## 手順　※後で綺麗にする。
 1.STS
 以下の手順からSTSをインストール
 https://qiita.com/t-shin0hara/items/d60116ab299a4dc8a9d0
