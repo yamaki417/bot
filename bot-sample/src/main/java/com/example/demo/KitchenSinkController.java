@@ -24,10 +24,14 @@ import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -35,6 +39,9 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.util.ObjectUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.google.common.io.ByteStreams;
@@ -111,11 +118,30 @@ public class KitchenSinkController {
 
     @Autowired
     private LineBlobClient lineBlobClient;
+    
+    private String plan;
+    
+    private String time;
+    
+    private Date local;
+    
+    private String token;
 
     @EventMapping
+    // textを送ったときに発生するイベント
     public void handleTextMessageEvent(MessageEvent<TextMessageContent> event) throws Exception {
         TextMessageContent message = event.getMessage();
         handleTextContent(event.getReplyToken(), event, message);
+        token = event.getReplyToken();
+
+    }
+    
+    @Scheduled(fixedDelay = 5000)
+    public void aaa() {
+    	this.replyText(
+    			token,
+                 ""
+        );
     }
 
     @EventMapping
@@ -336,13 +362,14 @@ public class KitchenSinkController {
                 content.getPackageId(), content.getStickerId())
         );
     }
-
+ 
     private void handleTextContent(String replyToken, Event event, TextMessageContent content)
             throws Exception {
         final String text = content.getText();
 
         log.info("Got text message from replyToken:{}: text:{} emojis:{}", replyToken, text,
                  content.getEmojis());
+        if(ObjectUtils.isEmpty(plan)) {
         switch (text) {
             case "profile": {
                 log.info("Invoking 'profile' command: source:{}",
@@ -611,6 +638,12 @@ public class KitchenSinkController {
             case "flex":
                 this.reply(replyToken, new ExampleFlexMessageSupplier().get());
                 break;
+            case "こうじ":
+            	this.replyText(replyToken, "クソだよね。");
+            	break;
+            case "みちる":
+            	this.replyText(replyToken, "うんちだよね。");
+            	break;
             case "quickreply":
                 this.reply(replyToken, new MessageWithQuickReplySupplier().get());
                 break;
@@ -631,11 +664,43 @@ public class KitchenSinkController {
                 break;
             default:
                 log.info("Returns echo message {}: {}", replyToken, text);
+                plan = text;
                 this.replyText(
                         replyToken,
-                        text
+                        plan + "か。OKOK！予定日時を入力してくだちい。　例：2021/07/31 19:30"
                 );
                 break;
+        }
+        } else {
+        	// 現在日時取得
+        	Date localDate = new Date();
+    		SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm");        	
+        	
+        	// 形式チェック
+        	try {
+        		
+                  sdf.parse(text);
+            	
+        	}catch(ParseException e){
+            	this.replyText(
+                        replyToken,
+                         "指定された形式で入力してください。"
+                );
+        	}
+        	
+        	// 過去日チェック
+        	Date input = sdf.parse(text);
+        	if(localDate.compareTo(input) == 1) {
+            	this.replyText(
+                        replyToken,
+                        "リマインダーの意味ググってみ？未来じゃないと"
+                );
+            } else {
+            	this.replyText(
+                        replyToken,
+                        plan + " " + text + "で登録します！"
+                );
+        	}
         }
     }
 
